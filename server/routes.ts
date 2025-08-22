@@ -74,6 +74,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Symbol and name are required" });
       }
       
+      // Check if stock is already in watchlist
+      const existingWatchlist = await storage.getWatchlistByUserId("default-user");
+      const alreadyExists = existingWatchlist.some(item => item.symbol === symbol.toUpperCase());
+      
+      if (alreadyExists) {
+        return res.status(409).json({ message: "Stock is already in your watchlist" });
+      }
+      
       const watchlistItem = await storage.addToWatchlist({
         userId: "default-user",
         symbol: symbol.toUpperCase(),

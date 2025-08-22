@@ -157,10 +157,10 @@ export default function Settings() {
                 <Label className="text-sm font-medium text-foreground mb-2 block">
                   Default Chart Period
                 </Label>
-                <select className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent">
+                <select defaultValue="1M" className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent">
                   <option value="1D">1 Day</option>
                   <option value="1W">1 Week</option>
-                  <option value="1M" selected>1 Month</option>
+                  <option value="1M">1 Month</option>
                   <option value="3M">3 Months</option>
                   <option value="1Y">1 Year</option>
                 </select>
@@ -170,8 +170,8 @@ export default function Settings() {
                 <Label className="text-sm font-medium text-foreground mb-2 block">
                   Currency Display
                 </Label>
-                <select className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent">
-                  <option value="USD" selected>USD ($)</option>
+                <select defaultValue="USD" className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent">
+                  <option value="USD">USD ($)</option>
                   <option value="EUR">EUR (€)</option>
                   <option value="GBP">GBP (£)</option>
                   <option value="JPY">JPY (¥)</option>

@@ -157,7 +157,7 @@ export default function Watchlist() {
               </thead>
               <tbody className="divide-y divide-border">
                 {watchlistWithStockData.map((item) => (
-                  <tr key={item.symbol} className="hover:bg-accent transition-colors">
+                  <tr key={item.id} className="hover:bg-accent transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>

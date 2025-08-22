@@ -4,6 +4,7 @@ import { Search, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { StockTable } from "@/components/stock-table";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatCurrency } from "@/lib/formatters";
+import { useToast } from "@/hooks/use-toast";
 import type { StockData, SortConfig, MarketIndex } from "@shared/schema";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { generateMockChartData } from "@/lib/stock-api";
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [selectedSector, setSelectedSector] = useState('');
   const [selectedPerformance, setSelectedPerformance] = useState('');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: stocks = [], isLoading: stocksLoading } = useQuery<StockData[]>({
     queryKey: ['/api/stocks'],
@@ -40,9 +42,26 @@ export default function Dashboard() {
           name: stock.name,
           sector: stock.sector,
         }),
-      }).then(res => res.json()),
-    onSuccess: () => {
+      }).then(async res => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to add to watchlist');
+        }
+        return data;
+      }),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      toast({
+        title: "Added to Watchlist",
+        description: `${variables.symbol} has been added to your watchlist.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
