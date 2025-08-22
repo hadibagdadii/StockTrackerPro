@@ -1,10 +1,23 @@
-import { type User, type InsertUser, type StockData, type InsertStockData, type WatchlistItem, type InsertWatchlistItem } from "@shared/schema";
+import {
+  users,
+  stockData,
+  watchlistItems,
+  type User,
+  type UpsertUser,
+  type StockData,
+  type InsertStockData,
+  type WatchlistItem,
+  type InsertWatchlistItem,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+// Interface for storage operations
 export interface IStorage {
+  // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Stock data methods
   getAllStocks(): Promise<StockData[]>;
@@ -18,16 +31,8 @@ export interface IStorage {
   removeFromWatchlist(userId: string, symbol: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private stocks: Map<string, StockData>;
-  private watchlists: Map<string, WatchlistItem>;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.stocks = new Map();
-    this.watchlists = new Map();
-    
     // Initialize with some default stock data
     this.initializeDefaultStocks();
   }
@@ -51,42 +56,64 @@ export class MemStorage implements IStorage {
     }
   }
 
+  // User operations (required for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
     return user;
   }
 
   async getAllStocks(): Promise<StockData[]> {
-    return Array.from(this.stocks.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return await db.select().from(stockData).orderBy(stockData.symbol);
   }
 
   async getStockBySymbol(symbol: string): Promise<StockData | undefined> {
-    return this.stocks.get(symbol);
+    const [stock] = await db.select().from(stockData).where(eq(stockData.symbol, symbol));
+    return stock;
   }
 
   async createOrUpdateStock(stock: InsertStockData): Promise<StockData> {
-    const id = randomUUID();
-    const stockData: StockData = { 
-      ...stock, 
-      id, 
-      lastUpdated: new Date(),
-      marketCap: stock.marketCap ?? null,
-      sector: stock.sector ?? null
-    };
-    this.stocks.set(stock.symbol, stockData);
-    return stockData;
+    const [existingStock] = await db.select().from(stockData).where(eq(stockData.symbol, stock.symbol));
+    
+    if (existingStock) {
+      // Update existing stock
+      const [updatedStock] = await db
+        .update(stockData)
+        .set({
+          ...stock,
+          lastUpdated: new Date(),
+          marketCap: stock.marketCap ?? null,
+          sector: stock.sector ?? null
+        })
+        .where(eq(stockData.symbol, stock.symbol))
+        .returning();
+      return updatedStock;
+    } else {
+      // Insert new stock
+      const [newStock] = await db
+        .insert(stockData)
+        .values({
+          ...stock,
+          marketCap: stock.marketCap ?? null,
+          sector: stock.sector ?? null
+        })
+        .returning();
+      return newStock;
+    }
   }
 
   async updateStockPrices(stocks: InsertStockData[]): Promise<void> {
@@ -96,29 +123,30 @@ export class MemStorage implements IStorage {
   }
 
   async getWatchlistByUserId(userId: string): Promise<WatchlistItem[]> {
-    return Array.from(this.watchlists.values()).filter(item => item.userId === userId);
+    return await db.select().from(watchlistItems).where(eq(watchlistItems.userId, userId));
   }
 
   async addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem> {
-    const id = randomUUID();
-    const watchlistItem: WatchlistItem = {
-      ...item,
-      id,
-      addedAt: new Date(),
-      sector: item.sector ?? null
-    };
-    this.watchlists.set(id, watchlistItem);
+    const [watchlistItem] = await db
+      .insert(watchlistItems)
+      .values({
+        ...item,
+        sector: item.sector ?? null
+      })
+      .returning();
     return watchlistItem;
   }
 
   async removeFromWatchlist(userId: string, symbol: string): Promise<void> {
-    for (const [id, item] of Array.from(this.watchlists.entries())) {
-      if (item.userId === userId && item.symbol === symbol) {
-        this.watchlists.delete(id);
-        break;
-      }
-    }
+    await db
+      .delete(watchlistItems)
+      .where(
+        and(
+          eq(watchlistItems.userId, userId),
+          eq(watchlistItems.symbol, symbol)
+        )
+      );
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

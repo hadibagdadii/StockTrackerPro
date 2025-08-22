@@ -1,13 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, TrendingUp, TrendingDown, Wallet, Star } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatCurrency, formatPercentage, formatChange } from "@/lib/formatters";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
 import type { StockData, WatchlistItem, SortConfig } from "@shared/schema";
 
 export default function Watchlist() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
+  const { toast } = useToast();
+  const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
+
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   const { data: watchlistItems = [], isLoading: watchlistLoading } = useQuery<WatchlistItem[]>({
     queryKey: ['/api/watchlist'],
@@ -18,10 +39,29 @@ export default function Watchlist() {
   });
 
   const removeFromWatchlistMutation = useMutation({
-    mutationFn: (symbol: string) => 
-      fetch(`/api/watchlist/${symbol}`, { method: 'DELETE' }),
+    mutationFn: async (symbol: string) => {
+      await apiRequest(`/api/watchlist/${symbol}`, { method: 'DELETE' });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to remove from watchlist",
+        variant: "destructive",
+      });
     },
   });
 

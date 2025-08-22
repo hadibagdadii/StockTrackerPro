@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "./theme-provider";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   Star,
@@ -10,6 +11,8 @@ import {
   Moon,
   Menu,
   PieChart,
+  LogOut,
+  User,
 } from "lucide-react";
 
 const navItems = [
@@ -21,8 +24,13 @@ const navItems = [
 
 export function Navigation() {
   const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
 
   return (
     <nav className="bg-white dark:bg-card border-b border-gray-200 dark:border-border sticky top-0 z-50 backdrop-blur-sm bg-white/95 dark:bg-card/95">
@@ -36,7 +44,7 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
+            {isAuthenticated && navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.id;
               return (
@@ -56,7 +64,7 @@ export function Navigation() {
             })}
           </div>
 
-          {/* Theme Toggle & Mobile Menu */}
+          {/* Theme Toggle & User Menu */}
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleTheme}
@@ -69,6 +77,33 @@ export function Navigation() {
               )}
             </button>
 
+            {isAuthenticated && user && (
+              <>
+                <div className="hidden md:flex items-center space-x-2 px-3 py-2 rounded-md bg-accent/50">
+                  {user.profileImageUrl ? (
+                    <img 
+                      src={user.profileImageUrl} 
+                      alt="Profile" 
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <span className="text-sm text-foreground">
+                    {user.firstName || user.email?.split('@')[0] || 'User'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -79,7 +114,7 @@ export function Navigation() {
         </div>
 
         {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
+        {isMobileMenuOpen && isAuthenticated && (
           <div className="md:hidden pb-4">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -100,6 +135,33 @@ export function Navigation() {
                 </Link>
               );
             })}
+            
+            <div className="mt-4 pt-4 border-t border-border">
+              {user && (
+                <div className="flex items-center space-x-2 px-3 py-2 mb-2">
+                  {user.profileImageUrl ? (
+                    <img 
+                      src={user.profileImageUrl} 
+                      alt="Profile" 
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <span className="text-sm text-foreground">
+                    {user.firstName || user.email?.split('@')[0] || 'User'}
+                  </span>
+                </div>
+              )}
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </button>
+            </div>
           </div>
         )}
       </div>

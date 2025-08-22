@@ -4,7 +4,10 @@ import { Search, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { StockTable } from "@/components/stock-table";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatCurrency } from "@/lib/formatters";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
 import type { StockData, SortConfig, MarketIndex } from "@shared/schema";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { generateMockChartData } from "@/lib/stock-api";
@@ -14,8 +17,24 @@ export default function Dashboard() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
   const [selectedSector, setSelectedSector] = useState('');
   const [selectedPerformance, setSelectedPerformance] = useState('');
+  const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   const { data: stocks = [], isLoading: stocksLoading } = useQuery<StockData[]>({
     queryKey: ['/api/stocks'],
@@ -26,15 +45,35 @@ export default function Dashboard() {
   });
 
   const refreshMutation = useMutation({
-    mutationFn: () => fetch('/api/stocks/refresh', { method: 'POST' }).then(res => res.json()),
+    mutationFn: async () => {
+      await apiRequest('/api/stocks/refresh', { method: 'POST' });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/stocks'] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to refresh stock data",
+        variant: "destructive",
+      });
     },
   });
 
   const addToWatchlistMutation = useMutation({
-    mutationFn: (stock: StockData) => 
-      fetch('/api/watchlist', {
+    mutationFn: async (stock: StockData) => {
+      return await apiRequest('/api/watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,13 +81,8 @@ export default function Dashboard() {
           name: stock.name,
           sector: stock.sector,
         }),
-      }).then(async res => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Failed to add to watchlist');
-        }
-        return data;
-      }),
+      });
+    },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
       toast({
@@ -57,6 +91,17 @@ export default function Dashboard() {
       });
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Error",
         description: error.message,
