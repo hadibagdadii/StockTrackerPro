@@ -46,7 +46,7 @@ export default function Dashboard() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('/api/stocks/refresh', { method: 'POST' });
+      await apiRequest('POST', '/api/stocks/refresh');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/stocks'] });
@@ -73,14 +73,10 @@ export default function Dashboard() {
 
   const addToWatchlistMutation = useMutation({
     mutationFn: async (stock: StockData) => {
-      return await apiRequest('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symbol: stock.symbol,
-          name: stock.name,
-          sector: stock.sector,
-        }),
+      return await apiRequest('POST', '/api/watchlist', {
+        symbol: stock.symbol,
+        name: stock.name,
+        sector: stock.sector,
       });
     },
     onSuccess: (data, variables) => {

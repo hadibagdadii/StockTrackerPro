@@ -40,7 +40,7 @@ export default function Watchlist() {
 
   const removeFromWatchlistMutation = useMutation({
     mutationFn: async (symbol: string) => {
-      await apiRequest(`/api/watchlist/${symbol}`, { method: 'DELETE' });
+      await apiRequest('DELETE', `/api/watchlist/${symbol}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
