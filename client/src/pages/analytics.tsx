@@ -68,7 +68,7 @@ export default function Analytics() {
             
             <div>
               <p className="text-sm font-medium text-muted-foreground">Market Cap</p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-2xl font-bold text-foreground truncate">
                 {selectedStockData.marketCap ? formatCurrency(selectedStockData.marketCap) : 'N/A'}
               </p>
             </div>

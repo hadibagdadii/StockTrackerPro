@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, TrendingUp, TrendingDown, Wallet, Star } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Wallet, Star } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatCurrency, formatPercentage, formatChange } from "@/lib/formatters";
 import type { StockData, WatchlistItem, SortConfig } from "@shared/schema";
@@ -49,17 +49,9 @@ export default function Watchlist() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">My Watchlist</h2>
-          <p className="text-muted-foreground mt-1">Track your favorite stocks and performance</p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <button className="flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors">
-            <Plus className="mr-2 w-4 h-4" />
-            Add Stock
-          </button>
-        </div>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-foreground">My Watchlist</h2>
+        <p className="text-muted-foreground mt-1">Track your favorite stocks and performance</p>
       </div>
 
       {/* Watchlist Performance Summary */}
