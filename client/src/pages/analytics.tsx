@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { formatCurrency, formatPercentage } from "@/lib/formatters";
+import { formatCurrency, formatPercentage, formatNumber } from "@/lib/formatters";
 import { generateMockChartData } from "@/lib/stock-api";
 import type { StockData } from "@shared/schema";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar } from 'recharts';
@@ -68,8 +68,8 @@ export default function Analytics() {
             
             <div>
               <p className="text-sm font-medium text-muted-foreground">Market Cap</p>
-              <p className="text-2xl font-bold text-foreground truncate">
-                {selectedStockData.marketCap ? formatCurrency(selectedStockData.marketCap) : 'N/A'}
+              <p className="text-2xl font-bold text-foreground">
+                {selectedStockData.marketCap ? `$${formatNumber(selectedStockData.marketCap)}` : 'N/A'}
               </p>
             </div>
           </div>
